@@ -12,6 +12,10 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+import androidx.recyclerview.widget.DefaultItemAnimator;
+import androidx.recyclerview.widget.DividerItemDecoration;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.notes.databinding.ActivityMainBinding;
 
@@ -19,10 +23,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Button;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class MainActivity extends AppCompatActivity {
 
-    Note mTempNote = new Note();
-
+    private List<Note> noteList = new ArrayList<>();
+    private RecyclerView recyclerView;
+    private NoteAdapter mAdapter;
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
@@ -42,24 +50,32 @@ public class MainActivity extends AppCompatActivity {
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                DialogNewNote dialog = new DialogNewNote();
+                dialog.show(getSupportFragmentManager(), "");
             }
         });
 
-        Button button = findViewById(R.id.button);
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                DialogShowNote dialog = new DialogShowNote();
-                dialog.sendNoteSelected(mTempNote);
-                dialog.show(getSupportFragmentManager(), "123");
-            }
-        });
+        recyclerView = findViewById(R.id.recyclerView);
+        mAdapter = new NoteAdapter(this, noteList);
+        RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
+        recyclerView.setLayoutManager(mLayoutManager);
+        recyclerView.setItemAnimator(new DefaultItemAnimator());
+
+        recyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL));
+        recyclerView.setAdapter(mAdapter);
     }
 
-    public void createNewNote(Note n) {
-        mTempNote = n;
+    public void addNote(Note n) {
+
+        noteList.add(n);
+        mAdapter.notifyDataSetChanged();
+    }
+
+    public void showNote(int noteToShow) {
+
+        DialogShowNote dialog = new DialogShowNote();
+        dialog.sendNoteSelected(noteList.get(noteToShow));
+        dialog.show(getSupportFragmentManager(), "");
     }
 
     @Override
