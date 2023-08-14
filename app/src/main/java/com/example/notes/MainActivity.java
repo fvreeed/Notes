@@ -1,17 +1,15 @@
 package com.example.notes;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-
-import com.google.android.material.snackbar.Snackbar;
-
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.ui.AppBarConfiguration;
-import androidx.navigation.ui.NavigationUI;
 import androidx.recyclerview.widget.DefaultItemAnimator;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -19,18 +17,17 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.notes.databinding.ActivityMainBinding;
 
-import android.view.Menu;
-import android.view.MenuItem;
-import android.widget.Button;
-
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private List<Note> noteList = new ArrayList<>();
+    private JSONSerializer mSerializer;
+    private List<Note> noteList;
     private RecyclerView recyclerView;
     private NoteAdapter mAdapter;
+    private boolean mShowDividers;
+    private SharedPreferences mPrefs;
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
@@ -55,14 +52,35 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        mSerializer = new JSONSerializer("Notes.json", getApplicationContext());
+        try {
+            noteList = mSerializer.load();
+        } catch (Exception e) {
+            noteList = new ArrayList<Note>();
+            Log.e("Error loading notes: ", "", e);
+        }
+
         recyclerView = findViewById(R.id.recyclerView);
         mAdapter = new NoteAdapter(this, noteList);
         RecyclerView.LayoutManager mLayoutManager = new LinearLayoutManager(getApplicationContext());
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
-
-        recyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL));
         recyclerView.setAdapter(mAdapter);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        mPrefs = getSharedPreferences("Notes", MODE_PRIVATE);
+        mShowDividers = mPrefs.getBoolean("dividers", true);
+        if (mShowDividers) {
+            recyclerView.addItemDecoration(new DividerItemDecoration(this, LinearLayoutManager.VERTICAL));
+        } else {
+            if (recyclerView.getItemDecorationCount() > 0) {
+                recyclerView.removeItemDecorationAt(0);
+            }
+        }
     }
 
     public void addNote(Note n) {
@@ -87,17 +105,29 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
+        int id = item.getItemId();
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveNotes();
+    }
+
+    public void saveNotes() {
+        try {
+            mSerializer.save(noteList);
+        } catch (Exception e) {
+            Log.e("Error savin notes", "", e);
+        }
     }
 
 //    @Override
